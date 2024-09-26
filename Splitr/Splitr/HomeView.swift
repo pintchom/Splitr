@@ -8,13 +8,16 @@
 import SwiftUI
 
 struct HomeView: View {
+    @Environment(\.dismiss) var dismiss
     @StateObject private var dataModel = DataModel()
     @State private var showCreateGroupSheet = false
     @State private var showJoinGroupSheet = false
+    @State private var showSettingsSheet = false
     @State private var groupName = ""
     @State private var groupCode = ""
     @State private var joinGroupCode = ""
-
+    @State private var joinGroupName = ""
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -54,32 +57,50 @@ struct HomeView: View {
                     }
                     
                     HStack(spacing: 20) {
+//                        Button(action: {
+//                            showSettingsSheet = true
+//                        }) {
+//                            Image(systemName: "gear")
+//                                .foregroundColor(Color("black"))
+//                                .font(.system(size: 24))
+//                                .padding()
+//                                .background(Color("cream2"))
+//                                .clipShape(Circle())
+//                                .shadow(color: Color("black").opacity(0.2), radius: 5, x: 0, y: 2)
+//                        }
                         Button("Create Group") {
                             showCreateGroupSheet = true
                         }
                         .buttonStyle(CustomButtonStyle())
-                        
+                        Spacer()
                         Button("Join Group") {
                             showJoinGroupSheet = true
                         }
                         .buttonStyle(CustomButtonStyle())
+                        
                     }
                     .padding(.horizontal)
                 }
                 .padding(.vertical)
+                
             }
             .sheet(isPresented: $showCreateGroupSheet) {
                 CreateGroupSheet(groupName: $groupName, groupCode: $groupCode, createGroup: createGroup)
             }
             .sheet(isPresented: $showJoinGroupSheet) {
-                JoinGroupSheet(joinGroupCode: $joinGroupCode, joinGroup: joinGroup)
+                JoinGroupSheet(joinGroupCode: $joinGroupCode, joinGroupName: $joinGroupName, joinGroup: joinGroup)
+            }
+            .sheet(isPresented: $showSettingsSheet) {
+                SettingsView()
             }
         }
         .navigationBarBackButtonHidden()
         .onAppear {
-            if let userID = UserDefaults.standard.string(forKey: "userID") {
-                dataModel.fetchUserData(userID: userID)
+            guard let userID = UserDefaults.standard.string(forKey: "userID") else {
+                dismiss()
+                return
             }
+            dataModel.fetchUserData(userID: userID)
         }
     }
     
@@ -100,14 +121,14 @@ struct HomeView: View {
             }
         }
     }
-
+    
     private func joinGroup() {
         guard let userID = UserDefaults.standard.string(forKey: "userID") else {
             print("No user ID found")
             return
         }
         
-        FirebaseManager.shared.joinGroup(userID: userID, groupCode: joinGroupCode) { result in
+        FirebaseManager.shared.joinGroup(userID: userID, groupCode: joinGroupCode, groupName: joinGroupName) { result in
             switch result {
             case .success:
                 print("Joined group successfully")
@@ -189,6 +210,7 @@ struct CreateGroupSheet: View {
 
 struct JoinGroupSheet: View {
     @Binding var joinGroupCode: String
+    @Binding var joinGroupName: String
     let joinGroup: () -> Void
     
     var body: some View {
@@ -200,6 +222,9 @@ struct JoinGroupSheet: View {
                 Text("Join a Group")
                     .font(.title2)
                     .fontWeight(.bold)
+                
+                TextField("Group Name", text: $joinGroupName)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
                 
                 TextField("Group Code", text: $joinGroupCode)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -215,10 +240,11 @@ struct JoinGroupSheet: View {
     }
 }
 
+
 #Preview {
     HomeView()
 }
 
-// Make this screen prettier using the following colors 
+// Make this screen prettier using the following colors
 // #000000 (black) #F4DFC8 (cream1) #F4EAE0 (cream2) #FAF6F0 (cream3)
 // the names next to each hex are what i have them saved as so you can do Color("black") for example. add shadows and stuff as well

@@ -181,7 +181,7 @@ class FirebaseManager {
         }
     }
     
-    func joinGroup(userID: String, groupCode: String, completion: @escaping (Result<Void, Error>) -> Void) {
+    func joinGroup(userID: String, groupCode: String, groupName: String, completion: @escaping (Result<Void, Error>) -> Void) {
         let db = Firestore.firestore()
         let userRef = db.collection("users").document(userID)
         let groupRef = db.collection("groups").document(groupCode)
@@ -198,20 +198,33 @@ class FirebaseManager {
                 return nil
             }
             
-            guard let _ = userDocument.data(), userDocument.exists else {
+            guard let userData = userDocument.data(), userDocument.exists else {
                 let error = NSError(domain: "FirebaseManager", code: 404, userInfo: [NSLocalizedDescriptionKey: "User not found"])
                 errorPointer?.pointee = error
                 return nil
             }
             
-            guard let _ = groupDocument.data(), groupDocument.exists else {
+            guard var groupData = groupDocument.data(), groupDocument.exists else {
                 let error = NSError(domain: "FirebaseManager", code: 404, userInfo: [NSLocalizedDescriptionKey: "Group not found"])
                 errorPointer?.pointee = error
                 return nil
             }
             
+            guard let existingGroupName = groupData["groupName"] as? String, existingGroupName == groupName else {
+                let error = NSError(domain: "FirebaseManager", code: 400, userInfo: [NSLocalizedDescriptionKey: "Group name does not match"])
+                errorPointer?.pointee = error
+                return nil
+            }
+            
+            let userName = userData["name"] as? String ?? "Unknown User"
+            var userNames = groupData["userNames"] as? [String: String] ?? [:]
+            userNames[userID] = userName
+            
             transaction.updateData(["groupIDs": FieldValue.arrayUnion([groupCode])], forDocument: userRef)
-            transaction.updateData(["userIDs": FieldValue.arrayUnion([userID])], forDocument: groupRef)
+            transaction.updateData([
+                "userIDs": FieldValue.arrayUnion([userID]),
+                "userNames": userNames
+            ], forDocument: groupRef)
             
             return nil
         }) { (_, error) in

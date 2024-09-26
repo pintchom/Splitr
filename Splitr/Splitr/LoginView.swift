@@ -94,9 +94,16 @@ struct LoginView: View {
             }
         }
         .onAppear {
-            if let userID = UserDefaults.standard.string(forKey: "userID") {
-                retrieveUserData(userID: userID)
+            guard let userID = UserDefaults.standard.string(forKey: "userID") else {
+                print("NO USER ID ")
+                isLoggedIn = false
+                loginResult = ""
+                email = ""
+                pass = ""
+                pass2 = ""
+                return
             }
+            retrieveUserData(userID: userID)
         }
     }
     

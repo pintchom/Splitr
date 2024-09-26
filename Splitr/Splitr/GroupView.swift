@@ -13,6 +13,7 @@ struct GroupView: View {
     @State private var isPresentingPurchaseView = false
     @State private var selectedPurchase: Purchase?
     @State private var isPresentingWhoOwesWhatView = false
+    @Environment(\.presentationMode) var presentationMode
     
     init(group: GroupData) {
         _group = State(initialValue: group)
@@ -24,6 +25,22 @@ struct GroupView: View {
                 .edgesIgnoringSafeArea(.all)
             
             VStack(spacing: 20) {
+                HStack {
+                    Button(action: {
+                        presentationMode.wrappedValue.dismiss()
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .foregroundColor(Color("black"))
+                            .imageScale(.large)
+                            .padding(10)
+                            .background(Color("cream2"))
+                            .clipShape(Circle())
+                            .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 2)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal)
+                
                 Text(group.groupName)
                     .font(.largeTitle)
                     .fontWeight(.bold)
@@ -89,6 +106,7 @@ struct GroupView: View {
         .onAppear {
             fetchGroupData()
         }
+        .navigationBarHidden(true)
     }
     
     private func fetchGroupData() {
