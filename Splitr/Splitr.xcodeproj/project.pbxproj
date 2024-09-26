@@ -30,7 +30,6 @@
 		0A5884802CA1F40900FC950C /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 0A58847F2CA1F40900FC950C /* FirebaseStorage */; };
 		0A5884822CA1F40900FC950C /* FirebaseStorageCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = 0A5884812CA1F40900FC950C /* FirebaseStorageCombine-Community */; };
 		0A5884842CA1F40900FC950C /* FirebaseVertexAI-Preview in Frameworks */ = {isa = PBXBuildFile; productRef = 0A5884832CA1F40900FC950C /* FirebaseVertexAI-Preview */; };
-		0A5884882CA1F86000FC950C /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 0A5884872CA1F86000FC950C /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -54,7 +53,6 @@
 		0A58841E2CA1F2E900FC950C /* Splitr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Splitr.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0A58842E2CA1F2EA00FC950C /* SplitrTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SplitrTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0A5884382CA1F2EA00FC950C /* SplitrUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SplitrUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		0A5884872CA1F86000FC950C /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -143,7 +141,6 @@
 				0A5884312CA1F2EA00FC950C /* SplitrTests */,
 				0A58843B2CA1F2EA00FC950C /* SplitrUITests */,
 				0A58841F2CA1F2E900FC950C /* Products */,
-				0A5884872CA1F86000FC950C /* GoogleService-Info.plist */,
 			);
 			sourceTree = "<group>";
 		};
@@ -303,7 +300,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0A5884882CA1F86000FC950C /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
