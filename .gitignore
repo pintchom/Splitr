@@ -1,6 +1,11 @@
-/v
+v/
+
 Backend/key.json
-/__pycache__
+
+__pycache__/
+
 Backend/constants.py
-/Splitr/GoogleService-Info.plist
-/Backend
+
+Splitr/GoogleService-Info.plist
+
+Backend/
