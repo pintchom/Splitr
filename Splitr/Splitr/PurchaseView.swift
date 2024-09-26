@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct PurchaseView: View {
-    let group: GroupData
+    @Binding var group: GroupData
     @State private var cost: String = ""
     @State private var description: String = ""
     @State private var selectedUsers: [String: Bool] = [:]
@@ -18,48 +18,96 @@ struct PurchaseView: View {
     @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject var dataModel: DataModel
     
-    init(group: GroupData) {
-        self.group = group
-        _selectedUsers = State(initialValue: Dictionary(uniqueKeysWithValues: group.userIDs.map { ($0, false) }))
-        _percentages = State(initialValue: Dictionary(uniqueKeysWithValues: group.userIDs.map { ($0, "") }))
+    init(group: Binding<GroupData>) {
+        self._group = group
+        _selectedUsers = State(initialValue: Dictionary(uniqueKeysWithValues: group.wrappedValue.userIDs.map { ($0, false) }))
+        _percentages = State(initialValue: Dictionary(uniqueKeysWithValues: group.wrappedValue.userIDs.map { ($0, "") }))
     }
     
     var body: some View {
-        Form {
-            Section(header: Text("Purchase Details")) {
-                TextField("Cost", text: $cost)
-                    .keyboardType(.decimalPad)
-                TextField("Description", text: $description)
-            }
+        ZStack {
+            Color("cream3")
+                .edgesIgnoringSafeArea(.all)
             
-            Section(header: Text("Split Between")) {
-                ForEach(group.userIDs, id: \.self) { userID in
-                    HStack {
-                        Button(action: {
-                            selectedUsers[userID]?.toggle()
-                        }) {
-                            Image(systemName: selectedUsers[userID] ?? false ? "circle.fill" : "circle")
-                        }
-                        Text(userID)
-                        if selectedUsers[userID] ?? false {
-                            TextField("Percentage", text: Binding(
-                                get: { percentages[userID] ?? "" },
-                                set: { percentages[userID] = $0 }
-                            ))
-                            .keyboardType(.decimalPad)
-                        }
-                    }
+            ScrollView {
+                VStack(spacing: 20) {
+                    purchaseDetailsSection
+                    splitBetweenSection
+                    submitButton
                 }
-            }
-            
-            Section {
-                Button("Submit Purchase") {
-                    submitPurchase()
-                }
+                .padding()
             }
         }
         .alert(isPresented: $showAlert) {
             Alert(title: Text("Purchase Submission"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+        }
+    }
+    
+    private var purchaseDetailsSection: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            Text("Purchase Details")
+                .font(.headline)
+                .foregroundColor(Color("black"))
+            
+            TextField("Cost", text: $cost)
+                .keyboardType(.decimalPad)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+            
+            TextField("Description", text: $description)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+        }
+        .padding()
+        .background(Color("cream2"))
+        .cornerRadius(15)
+        .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
+    }
+    
+    private var splitBetweenSection: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            Text("Split Between")
+                .font(.headline)
+                .foregroundColor(Color("black"))
+            
+            ForEach(group.userIDs, id: \.self) { userID in
+                HStack {
+                    Button(action: {
+                        selectedUsers[userID]?.toggle()
+                    }) {
+                        Image(systemName: selectedUsers[userID] ?? false ? "checkmark.circle.fill" : "circle")
+                            .foregroundColor(Color("black"))
+                    }
+                    Text(group.userNames[userID] ?? userID)
+                        .foregroundColor(Color("black"))
+                    if selectedUsers[userID] ?? false {
+                        TextField("Percentage", text: Binding(
+                            get: { percentages[userID] ?? "" },
+                            set: { percentages[userID] = $0 }
+                        ))
+                        .keyboardType(.decimalPad)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .frame(width: 80)
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(Color("cream1"))
+        .cornerRadius(15)
+        .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
+    }
+    
+    private var submitButton: some View {
+        Button(action: submitPurchase) {
+            Text("Submit Purchase")
+                .fontWeight(.bold)
+                .foregroundColor(Color("cream3"))
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Color("black"))
+                .cornerRadius(15)
+                .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
         }
     }
     
@@ -104,14 +152,17 @@ struct PurchaseView: View {
                 alertMessage = "Purchase added successfully."
                 showAlert = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    // Create and add the new purchase to the group
+                    let newPurchase = Purchase(id: self.group.purchases.count + 1,
+                                               purchaser: purchaser,
+                                               cost: costDouble,
+                                               description: description,
+                                               percentages: percentagesDouble)
+                    self.group.purchases.append(newPurchase)
+                    
                     // Update the DataModel with the new purchase
                     if let index = self.dataModel.groups.firstIndex(where: { $0.id == self.group.id }) {
-                        let newPurchase = Purchase(id: self.dataModel.groups[index].purchases.count + 1,
-                                                   purchaser: purchaser,
-                                                   cost: costDouble,
-                                                   description: description,
-                                                   percentages: percentagesDouble)
-                        self.dataModel.groups[index].purchases.append(newPurchase)
+                        self.dataModel.groups[index] = self.group
                     }
                     self.presentationMode.wrappedValue.dismiss()
                 }
@@ -124,6 +175,6 @@ struct PurchaseView: View {
 }
 
 #Preview {
-    PurchaseView(group: GroupData(groupCode: "123", groupName: "Sample Group", creatorID: "user1", userIDs: ["user1", "user2", "user3"]))
+    PurchaseView(group: .constant(GroupData(groupCode: "123", groupName: "Sample Group", creatorID: "user1", userIDs: ["user1", "user2", "user3"])))
         .environmentObject(DataModel())
 }

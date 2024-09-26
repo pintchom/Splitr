@@ -75,31 +75,49 @@ class FirebaseManager {
     
     func createGroup(groupName: String, groupCode: String, userID: String, completion: @escaping (Result<Void, Error>) -> Void) {
         let db = Firestore.firestore()
-        let groupData: [String: Any] = [
-            "groupName": groupName,
-            "groupCode": groupCode,
-            "creatorID": userID,
-            "userIDs": [userID],
-            "purchases": [],
-            "purchaseCounter": 0
-        ]
         
-        db.collection("groups").document(groupCode).setData(groupData) { error in
+        // First, fetch the user's name
+        db.collection("users").document(userID).getDocument { (document, error) in
             if let error = error {
-                print("Error creating group: \(error.localizedDescription)")
+                print("Error fetching user data: \(error.localizedDescription)")
                 completion(.failure(error))
-            } else {
-                // Update the user's groupIDs
-                let userRef = db.collection("users").document(userID)
-                userRef.updateData([
-                    "groupIDs": FieldValue.arrayUnion([groupCode])
-                ]) { error in
-                    if let error = error {
-                        print("Error updating user's groupIDs: \(error.localizedDescription)")
-                        completion(.failure(error))
-                    } else {
-                        print("Group created and user updated successfully")
-                        completion(.success(()))
+                return
+            }
+            
+            guard let document = document, document.exists,
+                  let userName = document.data()?["name"] as? String else {
+                let error = NSError(domain: "FirebaseManager", code: 404, userInfo: [NSLocalizedDescriptionKey: "User not found or name not available"])
+                completion(.failure(error))
+                return
+            }
+            
+            let groupData: [String: Any] = [
+                "groupName": groupName,
+                "groupCode": groupCode,
+                "creatorID": userID,
+                "userIDs": [userID],
+                "purchases": [],
+                "purchaseCounter": 0,
+                "userNames": [userID: userName]
+            ]
+            
+            db.collection("groups").document(groupCode).setData(groupData) { error in
+                if let error = error {
+                    print("Error creating group: \(error.localizedDescription)")
+                    completion(.failure(error))
+                } else {
+                    // Update the user's groupIDs
+                    let userRef = db.collection("users").document(userID)
+                    userRef.updateData([
+                        "groupIDs": FieldValue.arrayUnion([groupCode])
+                    ]) { error in
+                        if let error = error {
+                            print("Error updating user's groupIDs: \(error.localizedDescription)")
+                            completion(.failure(error))
+                        } else {
+                            print("Group created and user updated successfully")
+                            completion(.success(()))
+                        }
                     }
                 }
             }
@@ -128,7 +146,7 @@ class FirebaseManager {
         }
     }
     
-    func retrieveGroup(groupCode: String, completion: @escaping (Result<(groupName: String, creatorID: String, userIDs: [String], purchases: [Purchase]), Error>) -> Void) {
+    func retrieveGroup(groupCode: String, completion: @escaping (Result<(groupName: String, creatorID: String, userIDs: [String], purchases: [Purchase], userNames: [String: String]), Error>) -> Void) {
         let db = Firestore.firestore()
         let groupRef = db.collection("groups").document(groupCode)
         
@@ -142,6 +160,7 @@ class FirebaseManager {
                 let creatorID = data?["creatorID"] as? String ?? ""
                 let userIDs = data?["userIDs"] as? [String] ?? []
                 let purchasesData = data?["purchases"] as? [[String: Any]] ?? []
+                let userNames = data?["userNames"] as? [String: String] ?? [:]
                 
                 let purchases = purchasesData.compactMap { purchaseData -> Purchase? in
                     guard let id = purchaseData["id"] as? Int,
@@ -154,7 +173,7 @@ class FirebaseManager {
                     return Purchase(id: id, purchaser: purchaser, cost: cost, description: description, percentages: percentages)
                 }
                 
-                completion(.success((groupName: groupName, creatorID: creatorID, userIDs: userIDs, purchases: purchases)))
+                completion(.success((groupName: groupName, creatorID: creatorID, userIDs: userIDs, purchases: purchases, userNames: userNames)))
             } else {
                 let error = NSError(domain: "FirebaseManager", code: 404, userInfo: [NSLocalizedDescriptionKey: "Group not found"])
                 completion(.failure(error))

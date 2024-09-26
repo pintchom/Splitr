@@ -23,29 +23,66 @@ struct LoginView: View {
                 if UserDefaults.standard.string(forKey: "userID") != nil {
                     HomeView()
                 } else {
-                    VStack {
-                        TextField("Email", text: $email)
-                        SecureField("Password", text: $pass)
+                    ZStack {
+                        Color("cream3")
+                            .edgesIgnoringSafeArea(.all)
                         
-                        Button(action: {
-                            loginUser()
-                        }) {
-                            if isLoading {
-                                ProgressView()
-                            } else {
-                                Text("Submit")
+                        VStack(spacing: 20) {
+                            Text("Welcome to Splitr")
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                                .foregroundColor(Color("black"))
+                                .padding()
+                                .background(Color("cream2"))
+                                .cornerRadius(15)
+                                .shadow(color: Color.black.opacity(0.2), radius: 5, x: 0, y: 2)
+                            
+                            VStack(spacing: 15) {
+                                TextField("Email", text: $email)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .padding(.horizontal)
+                                
+                                SecureField("Password", text: $pass)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .padding(.horizontal)
+                                
+                                Button(action: {
+                                    loginUser()
+                                }) {
+                                    if isLoading {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: Color("black")))
+                                    } else {
+                                        Text("Login")
+                                            .foregroundColor(Color("black"))
+                                            .padding()
+                                            .frame(maxWidth: .infinity)
+                                            .background(Color("cream1"))
+                                            .cornerRadius(10)
+                                    }
+                                }
+                                .disabled(isLoading)
+                                .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 2)
+                                
+                                Text(loginResult)
+                                    .foregroundColor(Color("black"))
+                                    .padding()
+                                
+                                Button(action: {
+                                    showSignUp = true
+                                }) {
+                                    Text("Don't have an account? Sign up!")
+                                        .foregroundColor(Color("black"))
+                                        .underline()
+                                }
+                                .padding(.top)
                             }
+                            .padding()
+                            .background(Color("cream2"))
+                            .cornerRadius(20)
+                            .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
                         }
-                        .disabled(isLoading)
-                        
-                        Text(loginResult)
-                        
-                        Button(action: {
-                            showSignUp = true
-                        }) {
-                            Text("Don't have an account? Sign up!")
-                        }
-                        .padding(.top)
+                        .padding()
                     }
                     .sheet(isPresented: $showSignUp) {
                         SignUpView(isLoggedIn: $isLoggedIn)

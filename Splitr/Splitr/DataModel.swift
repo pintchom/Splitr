@@ -38,15 +38,17 @@ class GroupData: ObservableObject, Identifiable {
     @Published var creatorID: String
     @Published var userIDs: [String]
     @Published var purchases: [Purchase]
+    @Published var userNames: [String: String]
     
     var id: String { groupCode }
     
-    init(groupCode: String, groupName: String, creatorID: String, userIDs: [String], purchases: [Purchase] = []) {
+    init(groupCode: String, groupName: String, creatorID: String, userIDs: [String], purchases: [Purchase] = [], userNames: [String: String] = [:]) {
         self.groupCode = groupCode
         self.groupName = groupName
         self.creatorID = creatorID
         self.userIDs = userIDs
         self.purchases = purchases
+        self.userNames = userNames
     }
 }
 
@@ -78,11 +80,34 @@ class DataModel: ObservableObject {
                 switch result {
                 case .success(let groupData):
                     DispatchQueue.main.async {
-                        let newGroup = GroupData(groupCode: groupID, groupName: groupData.groupName, creatorID: groupData.creatorID, userIDs: groupData.userIDs, purchases: groupData.purchases)
+                        let newGroup = GroupData(groupCode: groupID, 
+                                                 groupName: groupData.groupName, 
+                                                 creatorID: groupData.creatorID, 
+                                                 userIDs: groupData.userIDs, 
+                                                 purchases: groupData.purchases,
+                                                 userNames: groupData.userNames)
                         self.groups.append(newGroup)
+                        self.fetchUserNames(for: newGroup)
                     }
                 case .failure(let error):
                     print("Failed to retrieve group data for group \(groupID): \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
+    private func fetchUserNames(for group: GroupData) {
+        for userID in group.userIDs {
+            if group.userNames[userID] == nil {
+                FirebaseManager.shared.retrieveUser(userID: userID) { result in
+                    switch result {
+                    case .success(let userData):
+                        DispatchQueue.main.async {
+                            group.userNames[userID] = userData.name
+                        }
+                    case .failure(let error):
+                        print("Failed to retrieve user name for user \(userID): \(error.localizedDescription)")
+                    }
                 }
             }
         }
