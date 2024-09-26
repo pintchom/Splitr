@@ -13,6 +13,8 @@ struct GroupView: View {
     @State private var isPresentingPurchaseView = false
     @State private var selectedPurchase: Purchase?
     @State private var isPresentingWhoOwesWhatView = false
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
     @Environment(\.presentationMode) var presentationMode
     
     init(group: GroupData) {
@@ -106,6 +108,9 @@ struct GroupView: View {
         .onAppear {
             fetchGroupData()
         }
+        .alert(isPresented: $showErrorAlert) {
+            Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
+        }
         .navigationBarHidden(true)
     }
     
@@ -120,9 +125,16 @@ struct GroupView: View {
                                            creatorID: groupData.creatorID,
                                            userIDs: groupData.userIDs,
                                            purchases: groupData.purchases,
-                                           userNames: groupData.userNames)
+                                           userNames: groupData.userNames,
+                                           balances: groupData.balances,
+                                           paymentHistory: group.paymentHistory)
+                    print(self.group.balances)
                 }
             case .failure(let error):
+                DispatchQueue.main.async {
+                    self.errorMessage = "Failed to retrieve group data: \(error.localizedDescription)"
+                    self.showErrorAlert = true
+                }
                 print("Failed to retrieve group data: \(error.localizedDescription)")
             }
         }

@@ -140,36 +140,30 @@ struct PurchaseView: View {
         
         let purchaser = UserDefaults.standard.string(forKey: "userID") ?? ""
         
-        FirebaseManager.shared.addPurchase(
+        dataModel.addPurchase(
             groupCode: group.groupCode,
             purchaser: purchaser,
             cost: costDouble,
             description: description,
             percentages: percentagesDouble
-        ) { result in
-            switch result {
-            case .success:
-                alertMessage = "Purchase added successfully."
-                showAlert = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                    // Create and add the new purchase to the group
-                    let newPurchase = Purchase(id: self.group.purchases.count + 1,
-                                               purchaser: purchaser,
-                                               cost: costDouble,
-                                               description: description,
-                                               percentages: percentagesDouble)
-                    self.group.purchases.append(newPurchase)
-                    
-                    // Update the DataModel with the new purchase
-                    if let index = self.dataModel.groups.firstIndex(where: { $0.id == self.group.id }) {
-                        self.dataModel.groups[index] = self.group
-                    }
-                    self.presentationMode.wrappedValue.dismiss()
-                }
-            case .failure(let error):
-                alertMessage = "Error adding purchase: \(error.localizedDescription)"
-                showAlert = true
+        )
+        
+        alertMessage = "Purchase added successfully."
+        showAlert = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            // Create and add the new purchase to the group
+            let newPurchase = Purchase(id: self.group.purchases.count + 1,
+                                                                             purchaser: purchaser,
+                                       cost: costDouble,
+                                       description: description,
+                                                                             percentages: percentagesDouble)
+            self.group.purchases.append(newPurchase)
+            
+            // Update the DataModel with the new purchase
+            if let index = self.dataModel.groups.firstIndex(where: { $0.id == self.group.id }) {
+                self.dataModel.groups[index] = self.group
             }
+            self.presentationMode.wrappedValue.dismiss()
         }
     }
 }

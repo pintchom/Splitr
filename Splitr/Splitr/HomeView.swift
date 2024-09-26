@@ -17,6 +17,8 @@ struct HomeView: View {
     @State private var groupCode = ""
     @State private var joinGroupCode = ""
     @State private var joinGroupName = ""
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
     
     var body: some View {
         NavigationStack {
@@ -88,7 +90,7 @@ struct HomeView: View {
                 CreateGroupSheet(groupName: $groupName, groupCode: $groupCode, createGroup: createGroup)
             }
             .sheet(isPresented: $showJoinGroupSheet) {
-                JoinGroupSheet(joinGroupCode: $joinGroupCode, joinGroupName: $joinGroupName, joinGroup: joinGroup)
+                JoinGroupSheet(showAlertError: $showErrorAlert, errorMessage: $errorMessage, joinGroupCode: $joinGroupCode, joinGroupName: $joinGroupName, joinGroup: joinGroup)
             }
             .sheet(isPresented: $showSettingsSheet) {
                 SettingsView()
@@ -110,7 +112,9 @@ struct HomeView: View {
             return
         }
         
-        FirebaseManager.shared.createGroup(groupName: groupName, groupCode: groupCode, userID: userID) { result in
+        let trimmedGroupName = groupName.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        FirebaseManager.shared.createGroup(groupName: trimmedGroupName, groupCode: groupCode, userID: userID) { result in
             switch result {
             case .success:
                 print("Group created successfully")
@@ -136,6 +140,8 @@ struct HomeView: View {
                 dataModel.fetchUserData(userID: userID)
             case .failure(let error):
                 print("Error joining group: \(error.localizedDescription)")
+                errorMessage = "Failed to join group: \(error.localizedDescription)"
+                showErrorAlert = true
             }
         }
     }
@@ -209,6 +215,8 @@ struct CreateGroupSheet: View {
 }
 
 struct JoinGroupSheet: View {
+    @Binding var showAlertError: Bool
+    @Binding var errorMessage: String
     @Binding var joinGroupCode: String
     @Binding var joinGroupName: String
     let joinGroup: () -> Void
@@ -236,6 +244,9 @@ struct JoinGroupSheet: View {
             }
             .padding()
             .background(Color("cream3"))
+        }
+        .alert(isPresented: $showAlertError) {
+            Alert(title: Text("Error"), message: Text(errorMessage), dismissButton: .default(Text("OK")))
         }
     }
 }

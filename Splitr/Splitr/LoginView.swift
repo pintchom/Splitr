@@ -39,10 +39,12 @@ struct LoginView: View {
                             
                             VStack(spacing: 15) {
                                 TextField("Email", text: $email)
+                                    .foregroundColor(Color("black"))
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .padding(.horizontal)
                                 
                                 SecureField("Password", text: $pass)
+                                    .foregroundColor(Color("black"))
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .padding(.horizontal)
                                 

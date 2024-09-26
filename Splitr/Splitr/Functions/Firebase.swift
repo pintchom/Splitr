@@ -98,7 +98,9 @@ class FirebaseManager {
                 "userIDs": [userID],
                 "purchases": [],
                 "purchaseCounter": 0,
-                "userNames": [userID: userName]
+                "userNames": [userID: userName],
+                "balances": [userID: [:]],
+                "paymentHistory": [] // Initialize payment history
             ]
             
             db.collection("groups").document(groupCode).setData(groupData) { error in
@@ -146,7 +148,7 @@ class FirebaseManager {
         }
     }
     
-    func retrieveGroup(groupCode: String, completion: @escaping (Result<(groupName: String, creatorID: String, userIDs: [String], purchases: [Purchase], userNames: [String: String]), Error>) -> Void) {
+    func retrieveGroup(groupCode: String, completion: @escaping (Result<(groupName: String, creatorID: String, userIDs: [String], purchases: [Purchase], userNames: [String: String], balances: [String: [String: Double]], paymentHistory: [[String: Any]]), Error>) -> Void) {
         let db = Firestore.firestore()
         let groupRef = db.collection("groups").document(groupCode)
         
@@ -161,6 +163,9 @@ class FirebaseManager {
                 let userIDs = data?["userIDs"] as? [String] ?? []
                 let purchasesData = data?["purchases"] as? [[String: Any]] ?? []
                 let userNames = data?["userNames"] as? [String: String] ?? [:]
+                let balances = data?["balances"] as? [String: [String: Double]] ?? [:]
+                print("balances from retrieveGroup: \(balances)")
+                let paymentHistory = data?["paymentHistory"] as? [[String: Any]] ?? []
                 
                 let purchases = purchasesData.compactMap { purchaseData -> Purchase? in
                     guard let id = purchaseData["id"] as? Int,
@@ -173,7 +178,7 @@ class FirebaseManager {
                     return Purchase(id: id, purchaser: purchaser, cost: cost, description: description, percentages: percentages)
                 }
                 
-                completion(.success((groupName: groupName, creatorID: creatorID, userIDs: userIDs, purchases: purchases, userNames: userNames)))
+                completion(.success((groupName: groupName, creatorID: creatorID, userIDs: userIDs, purchases: purchases, userNames: userNames, balances: balances, paymentHistory: paymentHistory)))
             } else {
                 let error = NSError(domain: "FirebaseManager", code: 404, userInfo: [NSLocalizedDescriptionKey: "Group not found"])
                 completion(.failure(error))
@@ -220,10 +225,17 @@ class FirebaseManager {
             var userNames = groupData["userNames"] as? [String: String] ?? [:]
             userNames[userID] = userName
             
+            var balances = groupData["balances"] as? [String: [String: Double]] ?? [:]
+            balances[userID] = [:]
+            
+            var paymentHistory = groupData["paymentHistory"] as? [[String: Any]] ?? []
+            
             transaction.updateData(["groupIDs": FieldValue.arrayUnion([groupCode])], forDocument: userRef)
             transaction.updateData([
                 "userIDs": FieldValue.arrayUnion([userID]),
-                "userNames": userNames
+                "userNames": userNames,
+                "balances": balances,
+                "paymentHistory": paymentHistory
             ], forDocument: groupRef)
             
             return nil
@@ -269,9 +281,22 @@ class FirebaseManager {
                 "percentages": percentages
             ]
             
+            // Update balances
+            var balances = groupData["balances"] as? [String: [String: Double]] ?? [:]
+            for (userID, percentage) in percentages {
+                print(userID, percentage)
+                let amountOwed = cost * (percentage / 100)
+                print(amountOwed)
+                if userID != purchaser {
+                    balances[userID, default: [:]][purchaser, default: 0] += amountOwed
+                    balances[purchaser, default: [:]][userID, default: 0] -= amountOwed
+                }
+            }
+            
             transaction.updateData([
                 "purchases": FieldValue.arrayUnion([newPurchase]),
-                "purchaseCounter": newCounter
+                "purchaseCounter": newCounter,
+                "balances": balances
             ], forDocument: groupRef)
             
             return nil
@@ -307,9 +332,30 @@ class FirebaseManager {
             }
             
             var purchases = groupData["purchases"] as? [[String: Any]] ?? []
-            purchases.removeAll { ($0["id"] as? Int) == purchaseId }
+            var balances = groupData["balances"] as? [String: [String: Double]] ?? [:]
             
-            transaction.updateData(["purchases": purchases], forDocument: groupRef)
+            if let purchaseIndex = purchases.firstIndex(where: { ($0["id"] as? Int) == purchaseId }) {
+                let purchase = purchases[purchaseIndex]
+                let cost = purchase["cost"] as? Double ?? 0
+                let purchaser = purchase["purchaser"] as? String ?? ""
+                let percentages = purchase["percentages"] as? [String: Double] ?? [:]
+                
+                // Reverse the balances
+                for (userID, percentage) in percentages {
+                    let amountOwed = cost * percentage
+                    if userID != purchaser {
+                        balances[userID, default: [:]][purchaser, default: 0] -= amountOwed
+                        balances[purchaser, default: [:]][userID, default: 0] += amountOwed
+                    }
+                }
+                
+                purchases.remove(at: purchaseIndex)
+            }
+            
+            transaction.updateData([
+                "purchases": purchases,
+                "balances": balances
+            ], forDocument: groupRef)
             
             return nil
         }) { (_, error) in
@@ -318,6 +364,70 @@ class FirebaseManager {
                 completion(.failure(error))
             } else {
                 print("Purchase removed successfully")
+                completion(.success(()))
+            }
+        }
+    }
+
+    func payoff(groupCode: String, payer: String, receiver: String, amount: Double, completion: @escaping (Result<Void, Error>) -> Void) {
+        print("MAKING PAYMENT IN FIREBASE")
+        let db = Firestore.firestore()
+        let groupRef = db.collection("groups").document(groupCode)
+        
+        db.runTransaction({ (transaction, errorPointer) -> Any? in
+            let groupDocument: DocumentSnapshot
+            
+            do {
+                try groupDocument = transaction.getDocument(groupRef)
+            } catch let fetchError as NSError {
+                errorPointer?.pointee = fetchError
+                return nil
+            }
+            
+            guard var groupData = groupDocument.data(), groupDocument.exists else {
+                let error = NSError(domain: "FirebaseManager", code: 404, userInfo: [NSLocalizedDescriptionKey: "Group not found"])
+                errorPointer?.pointee = error
+                return nil
+            }
+            
+            var balances = groupData["balances"] as? [String: [String: Double]] ?? [:]
+            var paymentHistory = groupData["paymentHistory"] as? [[String: Any]] ?? []
+            
+            // Update balances
+            balances[payer, default: [:]][receiver, default: 0] -= amount
+            balances[receiver, default: [:]][payer, default: 0] += amount
+            
+            // Clean up zero balances
+            if balances[payer]?[receiver] == 0 {
+                balances[payer]?.removeValue(forKey: receiver)
+            }
+            if balances[receiver]?[payer] == 0 {
+                balances[receiver]?.removeValue(forKey: payer)
+            }
+            
+            print("balances post changes \(balances)")
+            
+            // Add to payment history
+            let payment: [String: Any] = [
+                "payer": payer,
+                "receiver": receiver,
+                "amount": amount,
+                "timestamp": Timestamp(date: Date()) // Use Timestamp instead of FieldValue.serverTimestamp()
+            ]
+            paymentHistory.append(payment)
+            print("history post changes \(paymentHistory)")
+            transaction.updateData([
+                "balances": balances,
+                "paymentHistory": paymentHistory
+            ], forDocument: groupRef)
+            
+            return nil
+        }) { (_, error) in
+            if let error = error {
+                print("Error processing payoff: \(error.localizedDescription)")
+                completion(.failure(error))
+            } else {
+                print("Payoff processed successfully")
                 completion(.success(()))
             }
         }

@@ -57,9 +57,22 @@
 		0A5884872CA1F86000FC950C /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		0A5884CF2CA5C8AA00FC950C /* Exceptions for "Splitr" folder in "Splitr" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 0A58841D2CA1F2E900FC950C /* Splitr */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		0A5884202CA1F2E900FC950C /* Splitr */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				0A5884CF2CA5C8AA00FC950C /* Exceptions for "Splitr" folder in "Splitr" target */,
+			);
 			path = Splitr;
 			sourceTree = "<group>";
 		};
@@ -478,11 +491,11 @@
 				DEVELOPMENT_TEAM = Z3BPYU7FG3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Splitr/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Splitr;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 16;
@@ -510,11 +523,11 @@
 				DEVELOPMENT_TEAM = Z3BPYU7FG3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Splitr/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Splitr;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 16;
