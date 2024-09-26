@@ -3,3 +3,4 @@ Backend/key.json
 /__pycache__
 Backend/constants.py
 Splitr/GoogleService-Info.plist
+Backend/
