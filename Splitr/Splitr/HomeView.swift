@@ -207,6 +207,7 @@ struct CreateGroupSheet: View {
                     createGroup()
                 }
                 .buttonStyle(CustomButtonStyle())
+                .disabled(groupName.isEmpty || groupCode.isEmpty)
             }
             .padding()
             .background(Color("cream3"))
@@ -241,6 +242,7 @@ struct JoinGroupSheet: View {
                     joinGroup()
                 }
                 .buttonStyle(CustomButtonStyle())
+                .disabled(joinGroupName.isEmpty || joinGroupCode.isEmpty)
             }
             .padding()
             .background(Color("cream3"))

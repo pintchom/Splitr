@@ -33,8 +33,13 @@ struct WhoOwesWhatView: View {
                                 ForEach(currentUserBalances.sorted(by: { $0.value > $1.value }), id: \.key) { otherUserID, amount in
                                     if amount > 0 {
                                         HStack {
-                                            Text("YOU owe \(group.userNames[otherUserID] ?? "Unknown")")
-                                                .foregroundColor(Color("black"))
+                                            VStack(alignment: .leading) {
+                                                Text("YOU owe \(group.userNames[otherUserID] ?? "Unknown")")
+                                                    .foregroundColor(Color("black"))
+                                                Text(group.userPayments[otherUserID] ?? "")
+                                                    .font(.caption)
+                                                    .foregroundColor(.gray)
+                                            }
                                             Spacer()
                                             Text("$\(String(format: "%.2f", amount))")
                                                 .foregroundColor(.red)
@@ -71,8 +76,16 @@ struct WhoOwesWhatView: View {
                             ForEach(group.userIDs.filter { $0 != userID }, id: \.self) { otherUserID in
                                 if let amount = balances[userID]?[otherUserID], amount > 0 {
                                     HStack {
-                                        Text("\(group.userNames[userID] ?? "Unknown") owes \(group.userNames[otherUserID] ?? "Unknown")")
-                                            .foregroundColor(Color("black"))
+                                        VStack(alignment: .leading) {
+                                            Text("\(group.userNames[userID] ?? "Unknown") owes \(group.userNames[otherUserID] ?? "Unknown")")
+                                                .foregroundColor(Color("black"))
+                                            Text(group.userPayments[otherUserID] ?? "NONE FOUND")
+                                                .font(.caption)
+                                                .foregroundColor(.gray)
+                                        }
+                                        .onAppear {
+                                            print(group.userPayments)
+                                        }
                                         Spacer()
                                         Text("$\(String(format: "%.2f", amount))")
                                             .foregroundColor(.red)
@@ -100,8 +113,13 @@ struct WhoOwesWhatView: View {
                         ForEach(group.paymentHistory.indices, id: \.self) { index in
                             let payment = group.paymentHistory[index]
                             HStack {
-                                Text("\(group.userNames[payment["payer"] as? String ?? ""] ?? "Unknown") paid \(group.userNames[payment["receiver"] as? String ?? ""] ?? "Unknown")")
-                                    .foregroundColor(Color("black"))
+                                VStack(alignment: .leading) {
+                                    Text("\(group.userNames[payment["payer"] as? String ?? ""] ?? "Unknown") paid \(group.userNames[payment["receiver"] as? String ?? ""] ?? "Unknown")")
+                                        .foregroundColor(Color("black"))
+                                    Text(group.userPayments[payment["receiver"] as? String ?? ""] ?? "")
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                }
                                 Spacer()
                                 Text("$\(String(format: "%.2f", payment["amount"] as? Double ?? 0.0))")
                                     .foregroundColor(.green)
@@ -206,7 +224,7 @@ struct WhoOwesWhatView: View {
     WhoOwesWhatView(group: GroupData(groupCode: "123", groupName: "Sample Group", creatorID: "user1", userIDs: ["user1", "user2", "user3"], purchases: [
         Purchase(id: 1, purchaser: "user1", cost: 100.0, description: "Groceries", percentages: ["user1": 50.0, "user2": 25.0, "user3": 25.0]),
         Purchase(id: 2, purchaser: "user2", cost: 60.0, description: "Dinner", percentages: ["user1": 33.33, "user2": 33.33, "user3": 33.33])
-    ], userNames: ["user1": "Alice", "user2": "Bob", "user3": "Charlie"], paymentHistory: [
+    ], userNames: ["user1": "Alice", "user2": "Bob", "user3": "Charlie"], userPayments: ["user1": "@alice", "user2": "@bob", "user3": "@charlie"], paymentHistory: [
         ["payer": "user2", "receiver": "user1", "amount": 20.0, "timestamp": Date()],
         ["payer": "user3", "receiver": "user1", "amount": 15.0, "timestamp": Date()]
     ]))

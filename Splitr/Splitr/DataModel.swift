@@ -11,15 +11,17 @@ class UserData: ObservableObject, Identifiable {
     let id: String
     @Published var name: String = ""
     @Published var email: String = ""
+    @Published var payment: String = ""
     @Published var groupIDs: [String] = []
     
     init(id: String) {
         self.id = id
     }
     
-    func updateUser(name: String, email: String, groupIDs: [String]) {
+    func updateUser(name: String, email: String, payment: String, groupIDs: [String]) {
         self.name = name
         self.email = email
+        self.payment = payment
         self.groupIDs = groupIDs
     }
 }
@@ -39,18 +41,20 @@ class GroupData: ObservableObject, Identifiable {
     @Published var userIDs: [String]
     @Published var purchases: [Purchase]
     @Published var userNames: [String: String]
+    @Published var userPayments: [String: String]
     @Published var balances: [String: [String: Double]]
     @Published var paymentHistory: [[String: Any]]
     
     var id: String { groupCode }
     
-    init(groupCode: String, groupName: String, creatorID: String, userIDs: [String], purchases: [Purchase] = [], userNames: [String: String] = [:], balances: [String: [String: Double]] = [:], paymentHistory: [[String: Any]] = []) {
+    init(groupCode: String, groupName: String, creatorID: String, userIDs: [String], purchases: [Purchase] = [], userNames: [String: String] = [:], userPayments: [String: String] = [:], balances: [String: [String: Double]] = [:], paymentHistory: [[String: Any]] = []) {
         self.groupCode = groupCode
         self.groupName = groupName
         self.creatorID = creatorID
         self.userIDs = userIDs
         self.purchases = purchases
         self.userNames = userNames
+        self.userPayments = userPayments
         self.balances = balances
         self.paymentHistory = paymentHistory
     }
@@ -68,7 +72,7 @@ class DataModel: ObservableObject {
                     if self.currentUser == nil {
                         self.currentUser = UserData(id: userID)
                     }
-                    self.currentUser?.updateUser(name: userData.name, email: userData.email, groupIDs: userData.groupIDs)
+                    self.currentUser?.updateUser(name: userData.name, email: userData.email, payment: userData.payment, groupIDs: userData.groupIDs)
                     self.fetchGroupsData(groupIDs: userData.groupIDs)
                 }
             case .failure(let error):
@@ -91,10 +95,12 @@ class DataModel: ObservableObject {
                                                  userIDs: groupData.userIDs, 
                                                  purchases: groupData.purchases,
                                                  userNames: groupData.userNames,
+                                                 userPayments: groupData.userPayments,
                                                  balances: groupData.balances,
                                                  paymentHistory: groupData.paymentHistory)
                         self.groups.append(newGroup)
                         print(self.groups[0].balances)
+                        print(self.groups[0].userPayments)
                         self.fetchUserNames(for: newGroup)
                     }
                 case .failure(let error):
@@ -112,6 +118,7 @@ class DataModel: ObservableObject {
                     case .success(let userData):
                         DispatchQueue.main.async {
                             group.userNames[userID] = userData.name
+                            group.userPayments[userID] = userData.payment
                         }
                     case .failure(let error):
                         print("Failed to retrieve user name for user \(userID): \(error.localizedDescription)")

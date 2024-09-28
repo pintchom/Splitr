@@ -14,13 +14,13 @@ class FirebaseManager {
     static let shared = FirebaseManager()
     private init() {}
     
-    func signUp(name: String, email: String, password: String, completion: @escaping (Result<User, Error>) -> Void) {
+    func signUp(name: String, email: String, password: String, payment: String, completion: @escaping (Result<User, Error>) -> Void) {
         Auth.auth().createUser(withEmail: email, password: password) { (authResult, error) in
             if let error = error {
                 print(error.localizedDescription)
                 completion(.failure(error))
             } else if let user = authResult?.user {
-                self.createUser(id: user.uid, name: name, email: email) { result in
+                self.createUser(id: user.uid, name: name, email: email, payment: payment) { result in
                     switch result {
                     case .success:
                         completion(.success(user))
@@ -32,11 +32,12 @@ class FirebaseManager {
         }
     }
     
-    private func createUser(id: String, name: String, email: String, completion: @escaping (Result<Void, Error>) -> Void) {
+    private func createUser(id: String, name: String, email: String, payment: String, completion: @escaping (Result<Void, Error>) -> Void) {
         let db = Firestore.firestore()
         let userData: [String: Any] = [
             "name": name,
             "email": email,
+            "payment": payment,
             "groupIDs": []
         ]
         
@@ -76,7 +77,7 @@ class FirebaseManager {
     func createGroup(groupName: String, groupCode: String, userID: String, completion: @escaping (Result<Void, Error>) -> Void) {
         let db = Firestore.firestore()
         
-        // First, fetch the user's name
+        // First, fetch the user's name and payment info
         db.collection("users").document(userID).getDocument { (document, error) in
             if let error = error {
                 print("Error fetching user data: \(error.localizedDescription)")
@@ -85,8 +86,9 @@ class FirebaseManager {
             }
             
             guard let document = document, document.exists,
-                  let userName = document.data()?["name"] as? String else {
-                let error = NSError(domain: "FirebaseManager", code: 404, userInfo: [NSLocalizedDescriptionKey: "User not found or name not available"])
+                  let userName = document.data()?["name"] as? String,
+                  let userPayment = document.data()?["payment"] as? String else {
+                let error = NSError(domain: "FirebaseManager", code: 404, userInfo: [NSLocalizedDescriptionKey: "User not found or data not available"])
                 completion(.failure(error))
                 return
             }
@@ -99,6 +101,7 @@ class FirebaseManager {
                 "purchases": [],
                 "purchaseCounter": 0,
                 "userNames": [userID: userName],
+                "userPayments": [userID: userPayment],
                 "balances": [userID: [:]],
                 "paymentHistory": [] // Initialize payment history
             ]
@@ -126,7 +129,7 @@ class FirebaseManager {
         }
     }
     
-    func retrieveUser(userID: String, completion: @escaping (Result<(name: String, email: String, groupIDs: [String]), Error>) -> Void) {
+    func retrieveUser(userID: String, completion: @escaping (Result<(name: String, email: String, payment: String, groupIDs: [String]), Error>) -> Void) {
         let db = Firestore.firestore()
         let userRef = db.collection("users").document(userID)
         
@@ -138,9 +141,10 @@ class FirebaseManager {
                 let data = document.data()
                 let name = data?["name"] as? String ?? ""
                 let email = data?["email"] as? String ?? ""
+                let payment = data?["payment"] as? String ?? ""
                 let groupIDs = data?["groupIDs"] as? [String] ?? []
                 
-                completion(.success((name: name, email: email, groupIDs: groupIDs)))
+                completion(.success((name: name, email: email, payment: payment, groupIDs: groupIDs)))
             } else {
                 let error = NSError(domain: "FirebaseManager", code: 404, userInfo: [NSLocalizedDescriptionKey: "User not found"])
                 completion(.failure(error))
@@ -148,7 +152,7 @@ class FirebaseManager {
         }
     }
     
-    func retrieveGroup(groupCode: String, completion: @escaping (Result<(groupName: String, creatorID: String, userIDs: [String], purchases: [Purchase], userNames: [String: String], balances: [String: [String: Double]], paymentHistory: [[String: Any]]), Error>) -> Void) {
+    func retrieveGroup(groupCode: String, completion: @escaping (Result<(groupName: String, creatorID: String, userIDs: [String], purchases: [Purchase], userNames: [String: String], userPayments: [String: String], balances: [String: [String: Double]], paymentHistory: [[String: Any]]), Error>) -> Void) {
         let db = Firestore.firestore()
         let groupRef = db.collection("groups").document(groupCode)
         
@@ -163,6 +167,7 @@ class FirebaseManager {
                 let userIDs = data?["userIDs"] as? [String] ?? []
                 let purchasesData = data?["purchases"] as? [[String: Any]] ?? []
                 let userNames = data?["userNames"] as? [String: String] ?? [:]
+                let userPayments = data?["userPayments"] as? [String: String] ?? [:]
                 let balances = data?["balances"] as? [String: [String: Double]] ?? [:]
                 print("balances from retrieveGroup: \(balances)")
                 let paymentHistory = data?["paymentHistory"] as? [[String: Any]] ?? []
@@ -178,7 +183,7 @@ class FirebaseManager {
                     return Purchase(id: id, purchaser: purchaser, cost: cost, description: description, percentages: percentages)
                 }
                 
-                completion(.success((groupName: groupName, creatorID: creatorID, userIDs: userIDs, purchases: purchases, userNames: userNames, balances: balances, paymentHistory: paymentHistory)))
+                completion(.success((groupName: groupName, creatorID: creatorID, userIDs: userIDs, purchases: purchases, userNames: userNames, userPayments: userPayments, balances: balances, paymentHistory: paymentHistory)))
             } else {
                 let error = NSError(domain: "FirebaseManager", code: 404, userInfo: [NSLocalizedDescriptionKey: "Group not found"])
                 completion(.failure(error))
@@ -222,8 +227,11 @@ class FirebaseManager {
             }
             
             let userName = userData["name"] as? String ?? "Unknown User"
+            let userPayment = userData["payment"] as? String ?? ""
             var userNames = groupData["userNames"] as? [String: String] ?? [:]
+            var userPayments = groupData["userPayments"] as? [String: String] ?? [:]
             userNames[userID] = userName
+            userPayments[userID] = userPayment
             
             var balances = groupData["balances"] as? [String: [String: Double]] ?? [:]
             balances[userID] = [:]
@@ -234,6 +242,7 @@ class FirebaseManager {
             transaction.updateData([
                 "userIDs": FieldValue.arrayUnion([userID]),
                 "userNames": userNames,
+                "userPayments": userPayments,
                 "balances": balances,
                 "paymentHistory": paymentHistory
             ], forDocument: groupRef)

@@ -12,6 +12,7 @@ struct SignUpView: View {
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var password2: String = ""
+    @State private var payment: String = ""
     @State private var isLoading: Bool = false
     @State private var signUpResult: String = ""
     @Binding var isLoggedIn: Bool
@@ -34,6 +35,7 @@ struct SignUpView: View {
                 VStack(spacing: 15) {
                     CustomTextField(placeholder: "Name", text: $name)
                     CustomTextField(placeholder: "Email", text: $email)
+                    CustomTextField(placeholder: "Payment Info (e.g., Venmo username)", text: $payment)
                     CustomSecureField(placeholder: "Password", text: $password)
                     CustomSecureField(placeholder: "Confirm Password", text: $password2)
                 }
@@ -64,7 +66,7 @@ struct SignUpView: View {
                             .cornerRadius(10)
                     }
                 }
-                .disabled(password != password2 || isLoading || (password == "" && password2 == ""))
+                .disabled(password != password2 || isLoading || name.isEmpty || email.isEmpty || payment.isEmpty || (password == "" && password2 == ""))
                 .shadow(color: Color.black.opacity(0.2), radius: 5, x: 0, y: 2)
                 
                 Text(signUpResult)
@@ -78,7 +80,7 @@ struct SignUpView: View {
     
     private func signUp() {
         isLoading = true
-        FirebaseManager.shared.signUp(name: name, email: email, password: password) { result in
+        FirebaseManager.shared.signUp(name: name, email: email, password: password, payment: payment) { result in
             isLoading = false
             switch result {
             case .success(let user):

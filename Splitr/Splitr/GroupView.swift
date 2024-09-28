@@ -101,9 +101,15 @@ struct GroupView: View {
         }
         .sheet(item: $selectedPurchase) { purchase in
             SinglePurchaseView(purchase: purchase, groupCode: group.groupCode, group: group)
+                .onDisappear {
+                    fetchGroupData()
+                }
         }
         .sheet(isPresented: $isPresentingWhoOwesWhatView) {
             WhoOwesWhatView(group: group)
+                .onDisappear {
+                    fetchGroupData()
+                }
         }
         .onAppear {
             fetchGroupData()
@@ -126,6 +132,7 @@ struct GroupView: View {
                                            userIDs: groupData.userIDs,
                                            purchases: groupData.purchases,
                                            userNames: groupData.userNames,
+                                           userPayments: group.userPayments,
                                            balances: groupData.balances,
                                            paymentHistory: group.paymentHistory)
                     print(self.group.balances)
